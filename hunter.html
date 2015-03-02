@@ -1,0 +1,127 @@
+<html>
+<head>
+	<title></title>
+
+	<script src="js/jquery-2.1.3.min.js"></script>
+	<!-- Change for Zepto? -->
+	<script src="js/paperjs-v0.9.21/dist/paper-full.js"></script>
+	<script type="text/paperscript" canvas="myCanvas">
+
+		// debugger;
+
+		//The centerpoint of out microbe
+			var spine = new Point(view.center);
+				//TODO - make this a path and reference by name, cleaner
+
+		//Create body for our mocrobe
+			var pody = new Path(
+				spine, 
+				[spine.x - 5, spine.y - 3],
+				[spine.x, spine.y -11],
+				[spine.x + 5, spine.y - 3]
+			);
+
+			pody.strokeColor = 'blue';
+			pody.fillColor = new Color('blue', '0.5');
+			pody.fillColor.alpha = 0.3;
+			pody.closed = true;
+			pody.smooth();
+
+		//Create intersection detection device
+			antenna = new Path(spine, [spine.x, spine.y-60]);
+			antenna.strokeColor = 'blue';
+			antenna.strokeColor.alpha = 0.3;
+
+
+			microbe = new Group();
+			microbe.addChildren([pody,antenna]);
+			console.log(microbe);
+
+
+		//Target point to travel towards
+			target_point = new Point.random() * view.size;
+
+			highlight_target = new Shape.Circle(target_point,5);
+			highlight_target.strokeColor = 'red';
+
+
+		//Animation loop
+			function onFrame(event){
+
+				//Get vector to target
+					target_Vector = target_point - antenna.segments[0].point;
+
+				//Get current vector of Microbe
+					microbe_Vector = antenna.segments[1].point - antenna.segments[0].point;
+
+				//Step animation movement forward
+					var stepVec = microbe_Vector;
+					stepVec.length = stepVec.length - (stepVec.length -1);
+					microbe.position += stepVec;
+
+				//Step animation rotation forward
+					var angleDiff = calcDiffA(target_Vector, microbe_Vector); 
+					var turnAngle = steerMicrobe(angleDiff);
+					microbe.rotate(turnAngle, antenna.segments[0].point);
+
+				//Update new target to seek if microbe is close
+					if(target_Vector.length < 5 ){
+						target_point = Point.random() * view.size;
+						highlight_target.position = target_point;
+					}
+			} //...onFrame()
+
+		//Calc functions
+
+			function steerMicrobe(angleToTarget){
+				var turnLimit = 1 //config option
+
+				if(angleToTarget > 0)
+					angleToTarget = turnLimit;
+				else
+					angleToTarget = turnLimit * -1;
+
+				return angleToTarget
+			}
+
+			function calcDiffA(target, current){
+				/* Returns difference in angle to target, bounded between +/- 180
+				*/ 
+				target = target.angle;
+				current = current.angle;
+				console.log('target is' + target);
+
+				if(Math.round(target) == Math.round(current))
+					return 0;
+
+				//Normalise angle diference
+				var difference = target - current;
+				while(difference < -180 )
+					difference += 360;
+				while(difference > 180)
+					difference -= 360;
+
+				return difference;
+			}
+
+	//---------------------
+
+			// Test indicators
+				// spineHighlight = new Shape.Circle(spine, 5);
+				// spineHighlight.strokeColor = 'red';
+
+				circ = new Shape.Circle(antenna.segments[0].point,5);
+				circ.strokeColor = 'green';
+
+	</script>
+	<style>
+		#myCanvas{
+			border: solid 1px red;
+		}
+	</style>
+</head>
+<body>
+<p>A paper.js experiment.</p>
+<canvas id="myCanvas" width="500" height="500"></canvas>
+</body>
+</html>
